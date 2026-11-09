@@ -1,0 +1,6 @@
+@RambutanSmartGarden.Api_HostAddress = http://localhost:5062
+
+GET {{RambutanSmartGarden.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
