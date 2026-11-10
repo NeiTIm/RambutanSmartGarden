@@ -18,17 +18,8 @@ public sealed class GardensController : ControllerBase
         _gardenService = gardenService;
     }
 
-    // ==================================
     // GET /api/gardens
-    // Phase 03.3.2
-    // ==================================
-
     [HttpGet]
-    [ProducesResponseType(
-        typeof(List<GardenListItemResponse>),
-        StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<List<GardenListItemResponse>>> GetAll(
         CancellationToken cancellationToken)
     {
@@ -51,22 +42,32 @@ public sealed class GardensController : ControllerBase
         return Ok(gardens);
     }
 
-    // ==================================
-    // POST /api/gardens
-    // Phase 03.3.1
-    // ==================================
+    // GET /api/gardens/{gardenId}
+    [HttpGet("{gardenId:guid}")]
+    public async Task<ActionResult<GardenDetailResponse>> GetById(
+        [FromRoute] Guid gardenId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _gardenService.GetByIdAsync(
+            User,
+            gardenId,
+            cancellationToken);
 
+        if (result.Status != GardenOperationStatus.Succeeded)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = 404,
+                Title = "Không tìm thấy vườn"
+            });
+        }
+
+        return Ok(result.Garden);
+    }
+
+    // POST /api/gardens
     [HttpPost]
     [Authorize(Policy = "SystemAdmin")]
-    [ProducesResponseType(
-        typeof(GardenResponse),
-        StatusCodes.Status201Created)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(
-        StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<GardenResponse>> Create(
         [FromBody] CreateGardenRequest request,
         CancellationToken cancellationToken)
@@ -87,13 +88,53 @@ public sealed class GardensController : ControllerBase
         {
             return BadRequest(new ProblemDetails
             {
-                Status = StatusCodes.Status400BadRequest,
+                Status = 400,
                 Title = "Thông tin vườn không hợp lệ"
             });
         }
 
-        return StatusCode(
-            StatusCodes.Status201Created,
-            result.Garden);
+        return StatusCode(201, result.Garden);
+    }
+
+    // PUT /api/gardens/{gardenId}
+    [HttpPut("{gardenId:guid}")]
+    public async Task<ActionResult<GardenDetailResponse>> Update(
+        [FromRoute] Guid gardenId,
+        [FromBody] UpdateGardenRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _gardenService.UpdateAsync(
+            User,
+            gardenId,
+            request,
+            cancellationToken);
+
+        return result.Status switch
+        {
+            GardenOperationStatus.Succeeded =>
+                Ok(result.Garden),
+
+            GardenOperationStatus.InvalidRequest =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Thông tin cập nhật không hợp lệ"
+                }),
+
+            GardenOperationStatus.ConcurrencyConflict =>
+                Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Dữ liệu vườn đã thay đổi",
+                    Detail =
+                        "Vui lòng tải lại thông tin vườn trước khi cập nhật."
+                }),
+
+            _ => NotFound(new ProblemDetails
+            {
+                Status = 404,
+                Title = "Không tìm thấy vườn"
+            })
+        };
     }
 }

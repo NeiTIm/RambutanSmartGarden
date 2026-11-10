@@ -7,7 +7,7 @@ namespace RambutanSmartGarden.Api.Features.Gardens.Repositories.Interfaces;
 
 public interface IGardenRepository
 {
-    // Phase 03.3.1 - Tạo vườn.
+    // Phase 03.3.1 - Create.
     void AddGarden(Garden garden);
 
     void AddMembership(GardenMembership membership);
@@ -17,16 +17,24 @@ public interface IGardenRepository
     Task<int> SaveChangesAsync(
         CancellationToken cancellationToken);
 
-    // Phase 03.3.2 - Danh sách vườn.
-    // null: tài khoản không tồn tại hoặc không hoạt động.
-    // true: System Admin.
-    // false: người dùng thông thường.
+    // Phase 03.3.2 - List.
     Task<bool?> GetSystemAdminStatusAsync(
         Guid userId,
         CancellationToken cancellationToken);
 
-    Task<List<GardenListItemResponse>> GetAccessibleGardensAsync(
-        Guid userId,
-        bool isSystemAdmin,
+    Task<List<GardenListItemResponse>>
+        GetAccessibleGardensAsync(
+            Guid userId,
+            bool isSystemAdmin,
+            CancellationToken cancellationToken);
+
+    // Phase 03.3.3 - Detail and Update.
+    Task<Garden?> FindGardenAsync(
+        Guid gardenId,
+        bool trackChanges,
         CancellationToken cancellationToken);
+
+    void SetOriginalRowVersion(
+        Garden garden,
+        byte[] originalRowVersion);
 }

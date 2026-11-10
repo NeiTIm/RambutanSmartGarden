@@ -17,9 +17,7 @@ public sealed class GardenRepository : IGardenRepository
         _dbContext = dbContext;
     }
 
-    // ============================
-    // Phase 03.3.1 - Create Garden
-    // ============================
+    // Phase 03.3.1 - Create.
 
     public void AddGarden(Garden garden)
     {
@@ -43,9 +41,7 @@ public sealed class GardenRepository : IGardenRepository
             cancellationToken);
     }
 
-    // ==================================
-    // Phase 03.3.2 - Accessible Gardens
-    // ==================================
+    // Phase 03.3.2 - List.
 
     public Task<bool?> GetSystemAdminStatusAsync(
         Guid userId,
@@ -60,10 +56,11 @@ public sealed class GardenRepository : IGardenRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public Task<List<GardenListItemResponse>> GetAccessibleGardensAsync(
-        Guid userId,
-        bool isSystemAdmin,
-        CancellationToken cancellationToken)
+    public Task<List<GardenListItemResponse>>
+        GetAccessibleGardensAsync(
+            Guid userId,
+            bool isSystemAdmin,
+            CancellationToken cancellationToken)
     {
         var gardens = _dbContext.Gardens
             .AsNoTracking()
@@ -85,7 +82,6 @@ public sealed class GardenRepository : IGardenRepository
                 garden.AreaSquareMeters,
                 garden.CreatedAt,
                 garden.UpdatedAt,
-
                 isSystemAdmin
                     ? "SystemAdmin"
                     : _dbContext.GardenMemberships
@@ -96,5 +92,33 @@ public sealed class GardenRepository : IGardenRepository
                         .FirstOrDefault()!
             ))
             .ToListAsync(cancellationToken);
+    }
+
+    // Phase 03.3.3 - Detail and Update.
+
+    public Task<Garden?> FindGardenAsync(
+        Guid gardenId,
+        bool trackChanges,
+        CancellationToken cancellationToken)
+    {
+        IQueryable<Garden> query = _dbContext.Gardens;
+
+        if (!trackChanges)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query.FirstOrDefaultAsync(
+            garden => garden.Id == gardenId,
+            cancellationToken);
+    }
+
+    public void SetOriginalRowVersion(
+        Garden garden,
+        byte[] originalRowVersion)
+    {
+        _dbContext.Entry(garden)
+            .Property(entity => entity.RowVersion)
+            .OriginalValue = originalRowVersion;
     }
 }
