@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using RambutanSmartGarden.Api.Features.Auth.DTOs;
 using RambutanSmartGarden.Api.Features.Users.Models;
 
 namespace RambutanSmartGarden.Api.Infrastructure.Authentication;
@@ -16,27 +15,38 @@ public sealed class JwtTokenService : IJwtTokenService
     {
         _jwtOptions = jwtOptions;
 
-        var signingKeyBytes = Convert.FromBase64String(
+        var keyBytes = Convert.FromBase64String(
             jwtOptions.SigningKey);
 
-        var securityKey = new SymmetricSecurityKey(
-            signingKeyBytes);
+        var securityKey = new SymmetricSecurityKey(keyBytes);
 
         _signingCredentials = new SigningCredentials(
             securityKey,
             SecurityAlgorithms.HmacSha256);
     }
 
-    public LoginResponse CreateAccessToken(User user)
+    public AccessTokenResult CreateAccessToken(
+        User user,
+        Guid sessionId)
     {
-        var issuedAt = DateTime.UtcNow;
-        var expiresAt = issuedAt.AddMinutes(
+        var now = DateTime.UtcNow;
+
+        var expiresAt = now.AddMinutes(
             _jwtOptions.AccessTokenMinutes);
 
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
+            new(
+                JwtRegisteredClaimNames.Sub,
+                user.Id.ToString()),
+
+            new(
+                JwtRegisteredClaimNames.Jti,
+                Guid.NewGuid().ToString("N")),
+
+            new(
+                "sid",
+                sessionId.ToString())
         };
 
         var descriptor = new SecurityTokenDescriptor
@@ -44,25 +54,16 @@ public sealed class JwtTokenService : IJwtTokenService
             Issuer = _jwtOptions.Issuer,
             Audience = _jwtOptions.Audience,
             Subject = new ClaimsIdentity(claims),
-            IssuedAt = issuedAt,
-            NotBefore = issuedAt,
+            IssuedAt = now,
+            NotBefore = now,
             Expires = expiresAt,
             SigningCredentials = _signingCredentials
         };
 
         var tokenHandler = new JsonWebTokenHandler();
-        var accessToken = tokenHandler.CreateToken(descriptor);
 
-        var userDto = new LoginUserDto(
-            user.Id,
-            user.Username,
-            user.DisplayName,
-            user.IsSystemAdmin);
-
-        return new LoginResponse(
-            accessToken,
-            "Bearer",
-            expiresAt,
-            userDto);
+        return new AccessTokenResult(
+            tokenHandler.CreateToken(descriptor),
+            expiresAt);
     }
 }

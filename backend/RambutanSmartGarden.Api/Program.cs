@@ -1,21 +1,22 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RambutanSmartGarden.Api.Common.Exceptions;
-using RambutanSmartGarden.Api.Features.Users.Models;
-using RambutanSmartGarden.Api.Infrastructure.Authentication;
-using RambutanSmartGarden.Api.Infrastructure.Persistence;
- using Microsoft.AspNetCore.Authorization;
-using RambutanSmartGarden.Api.Features.Users.Repositories;
-using RambutanSmartGarden.Api.Features.Users.Repositories.Interfaces;
-using RambutanSmartGarden.Api.Features.Users.Services;
-using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
 using RambutanSmartGarden.Api.Features.Auth.Repositories;
 using RambutanSmartGarden.Api.Features.Auth.Repositories.Interfaces;
 using RambutanSmartGarden.Api.Features.Auth.Services;
 using RambutanSmartGarden.Api.Features.Auth.Services.Interfaces;
+using RambutanSmartGarden.Api.Features.Users.Models;
+using RambutanSmartGarden.Api.Features.Users.Repositories;
+using RambutanSmartGarden.Api.Features.Users.Repositories.Interfaces;
+using RambutanSmartGarden.Api.Features.Users.Services;
+using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
+using RambutanSmartGarden.Api.Infrastructure.Authentication;
+using RambutanSmartGarden.Api.Infrastructure.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers và OpenAPI.
@@ -26,7 +27,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// Entity Framework Core và SQL Server.
+// EF Core và SQL Server.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration
@@ -37,15 +38,33 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
-// Đăng ký Password Hasher.
+// Password Hashing.
 builder.Services.AddScoped<
     IPasswordHasher<User>,
     PasswordHasher<User>>();
 
-// Đăng ký dịch vụ bootstrap System Admin.
+// Bootstrap System Admin.
 builder.Services.AddScoped<AdminBootstrapper>();
 
-// Đọc cấu hình JWT.
+// Repositories.
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
+
+builder.Services.AddScoped<
+    IAuthRepository,
+    AuthRepository>();
+
+// Services.
+builder.Services.AddScoped<
+    IAdminUserService,
+    AdminUserService>();
+
+builder.Services.AddScoped<
+    IAuthService,
+    AuthService>();
+
+// JWT Configuration.
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()
@@ -88,6 +107,10 @@ if (signingKeyBytes.Length < 32)
 
 builder.Services.AddSingleton(jwtOptions);
 
+builder.Services.AddSingleton<
+    IJwtTokenService,
+    JwtTokenService>();
+
 // JWT Bearer Authentication.
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -117,41 +140,73 @@ builder.Services
                 NameClaimType = "sub",
                 RoleClaimType = "role"
             };
-    });
-builder.Services.AddScoped<
-    IUserRepository,
-    UserRepository>();
 
-builder.Services.AddScoped<
-    IAdminUserService,
-    AdminUserService>();
+        // Kiểm tra phiên trong SQL Server sau khi JWT hợp lệ.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var subject = context.Principal?
+                    .FindFirst("sub")?.Value;
+
+                var session = context.Principal?
+                    .FindFirst("sid")?.Value;
+
+                if (!Guid.TryParse(subject, out var userId) ||
+                    !Guid.TryParse(session, out var sessionId))
+                {
+                    context.Fail(
+                        "Token không chứa thông tin phiên hợp lệ.");
+                    return;
+                }
+
+                var dbContext = context.HttpContext
+                    .RequestServices
+                    .GetRequiredService<AppDbContext>();
+
+                var now = DateTime.UtcNow;
+
+                var isActiveSession = await dbContext.UserSessions
+                    .AsNoTracking()
+                    .AnyAsync(
+                        s =>
+                            s.Id == sessionId &&
+                            s.UserId == userId &&
+                            s.RevokedAt == null &&
+                            s.ExpiresAt > now &&
+                            dbContext.Users.Any(u =>
+                                u.Id == userId &&
+                                u.IsActive),
+                        context.HttpContext.RequestAborted);
+
+                if (!isActiveSession)
+                {
+                    context.Fail(
+                        "Phiên đăng nhập đã hết hạn hoặc bị thu hồi.");
+                }
+            }
+        };
+    });
+
+// Authorization.
 builder.Services.AddScoped<
     IAuthorizationHandler,
     SystemAdminAuthorizationHandler>();
-    
-builder.Services.AddScoped<
-    IAuthRepository,
-    AuthRepository>();
 
-builder.Services.AddScoped<
-    IAuthService,
-    AuthService>();
-
-builder.Services.AddSingleton<
-    IJwtTokenService,
-    JwtTokenService>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("SystemAdmin", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.AddRequirements(new SystemAdminRequirement());
+
+        policy.AddRequirements(
+            new SystemAdminRequirement());
     });
 });
 
 var app = builder.Build();
 
-// Chế độ khởi tạo System Admin bằng Terminal.
+// Khởi tạo System Admin bằng Terminal.
 if (args.Contains(
         "--bootstrap-admin",
         StringComparer.OrdinalIgnoreCase))
@@ -162,7 +217,8 @@ if (args.Contains(
             "Bootstrap Admin chỉ được phép trong Development.");
     }
 
-    await using var scope = app.Services.CreateAsyncScope();
+    await using var scope =
+        app.Services.CreateAsyncScope();
 
     var bootstrapper = scope.ServiceProvider
         .GetRequiredService<AdminBootstrapper>();
@@ -171,14 +227,13 @@ if (args.Contains(
 
     Environment.ExitCode = succeeded ? 0 : 1;
 
-    // Không khởi động Web Server khi chạy bootstrap.
     return;
 }
 
 // Global Exception Handling.
 app.UseExceptionHandler();
 
-// Swagger chỉ bật trong Development.
+// Swagger chỉ dành cho Development.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

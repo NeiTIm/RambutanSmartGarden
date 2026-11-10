@@ -40,10 +40,66 @@ public sealed class AuthController : ControllerBase
             {
                 Status = StatusCodes.Status401Unauthorized,
                 Title = "Đăng nhập thất bại",
-                Detail = "Tên đăng nhập, số điện thoại hoặc mật khẩu không chính xác."
+                Detail = "Thông tin đăng nhập không chính xác."
             });
         }
 
         return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    [ProducesResponseType(
+        typeof(LoginResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> Refresh(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _authService.RefreshAsync(
+            request,
+            cancellationToken);
+
+        if (result is null)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Phiên đăng nhập không hợp lệ",
+                Detail = "Refresh Token đã hết hạn hoặc không còn hợp lệ."
+            });
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(
+        StatusCodes.Status204NoContent)]
+    [ProducesResponseType(
+        StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout(
+        CancellationToken cancellationToken)
+    {
+        var subject = User.FindFirst("sub")?.Value;
+        var session = User.FindFirst("sid")?.Value;
+
+        if (!Guid.TryParse(subject, out var userId) ||
+            !Guid.TryParse(session, out var sessionId))
+        {
+            return Unauthorized();
+        }
+
+        await _authService.LogoutAsync(
+            userId,
+            sessionId,
+            cancellationToken);
+
+        return NoContent();
     }
 }
