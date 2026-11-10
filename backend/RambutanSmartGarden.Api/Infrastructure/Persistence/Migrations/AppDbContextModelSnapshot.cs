@@ -205,6 +205,50 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Gardens.Areas.Models.GardenArea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AreaSquareMeters")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("GardenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GardenId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_GardenAreas_GardenId_Name");
+
+                    b.ToTable("GardenAreas", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_GardenAreas_AreaSquareMeters", "[AreaSquareMeters] IS NULL OR [AreaSquareMeters] > 0");
+                        });
+                });
+
             modelBuilder.Entity("RambutanSmartGarden.Api.Features.Gardens.Models.Garden", b =>
                 {
                     b.Property<Guid>("Id")
@@ -402,6 +446,15 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                     b.HasOne("RambutanSmartGarden.Api.Features.Users.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Gardens.Areas.Models.GardenArea", b =>
+                {
+                    b.HasOne("RambutanSmartGarden.Api.Features.Gardens.Models.Garden", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });

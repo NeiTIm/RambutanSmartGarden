@@ -21,6 +21,10 @@ using RambutanSmartGarden.Api.Features.Gardens.Repositories;
 using RambutanSmartGarden.Api.Features.Gardens.Repositories.Interfaces;
 using RambutanSmartGarden.Api.Features.Gardens.Services;
 using RambutanSmartGarden.Api.Features.Gardens.Services.Interfaces;
+using RambutanSmartGarden.Api.Features.Gardens.Areas.Repositories;
+using RambutanSmartGarden.Api.Features.Gardens.Areas.Repositories.Interfaces;
+using RambutanSmartGarden.Api.Features.Gardens.Areas.Services;
+using RambutanSmartGarden.Api.Features.Gardens.Areas.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers và OpenAPI.
@@ -102,6 +106,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IGardenMemberManagementService,
     GardenMemberManagementService>();
+    // Phase 03.4.1 - Garden Areas.
+builder.Services.AddScoped<
+    IGardenAreaRepository,
+    GardenAreaRepository>();
+
+builder.Services.AddScoped<
+    IGardenAreaService,
+    GardenAreaService>();
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()
