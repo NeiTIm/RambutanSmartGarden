@@ -12,6 +12,10 @@ using RambutanSmartGarden.Api.Features.Users.Repositories;
 using RambutanSmartGarden.Api.Features.Users.Repositories.Interfaces;
 using RambutanSmartGarden.Api.Features.Users.Services;
 using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
+using RambutanSmartGarden.Api.Features.Auth.Repositories;
+using RambutanSmartGarden.Api.Features.Auth.Repositories.Interfaces;
+using RambutanSmartGarden.Api.Features.Auth.Services;
+using RambutanSmartGarden.Api.Features.Auth.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers và OpenAPI.
@@ -124,7 +128,18 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthorizationHandler,
     SystemAdminAuthorizationHandler>();
+    
+builder.Services.AddScoped<
+    IAuthRepository,
+    AuthRepository>();
 
+builder.Services.AddScoped<
+    IAuthService,
+    AuthService>();
+
+builder.Services.AddSingleton<
+    IJwtTokenService,
+    JwtTokenService>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("SystemAdmin", policy =>
