@@ -18,6 +18,44 @@ public sealed class GardensController : ControllerBase
         _gardenService = gardenService;
     }
 
+    // ==================================
+    // GET /api/gardens
+    // Phase 03.3.2
+    // ==================================
+
+    [HttpGet]
+    [ProducesResponseType(
+        typeof(List<GardenListItemResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<List<GardenListItemResponse>>> GetAll(
+        CancellationToken cancellationToken)
+    {
+        var subject = User.FindFirst("sub")?.Value;
+
+        if (!Guid.TryParse(subject, out var currentUserId))
+        {
+            return Unauthorized();
+        }
+
+        var gardens = await _gardenService.GetAccessibleGardensAsync(
+            currentUserId,
+            cancellationToken);
+
+        if (gardens is null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(gardens);
+    }
+
+    // ==================================
+    // POST /api/gardens
+    // Phase 03.3.1
+    // ==================================
+
     [HttpPost]
     [Authorize(Policy = "SystemAdmin")]
     [ProducesResponseType(

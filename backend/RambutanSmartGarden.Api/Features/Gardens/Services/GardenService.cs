@@ -17,6 +17,10 @@ public sealed class GardenService : IGardenService
         _gardenRepository = gardenRepository;
     }
 
+    // ============================
+    // Phase 03.3.1 - Create Garden
+    // ============================
+
     public async Task<CreateGardenResult> CreateAsync(
         CreateGardenRequest request,
         Guid creatorUserId,
@@ -58,7 +62,6 @@ public sealed class GardenService : IGardenService
             CreatedAt = now
         };
 
-        // System Admin tạo vườn được gán Garden Admin.
         var membership = new GardenMembership
         {
             Id = Guid.NewGuid(),
@@ -68,7 +71,6 @@ public sealed class GardenService : IGardenService
             JoinedAt = now
         };
 
-        // Không ghi nhận dữ liệu nhạy cảm trong AuditLog.
         var auditLog = new AuditLog
         {
             Id = Guid.NewGuid(),
@@ -93,18 +95,46 @@ public sealed class GardenService : IGardenService
         await _gardenRepository.SaveChangesAsync(
             cancellationToken);
 
-        var response = new GardenResponse(
-            garden.Id,
-            garden.Name,
-            garden.Description,
-            garden.LocationDescription,
-            garden.AreaSquareMeters,
-            garden.CreatedAt,
-            garden.UpdatedAt);
-
         return new CreateGardenResult(
             CreateGardenStatus.Succeeded,
-            response);
+            new GardenResponse(
+                garden.Id,
+                garden.Name,
+                garden.Description,
+                garden.LocationDescription,
+                garden.AreaSquareMeters,
+                garden.CreatedAt,
+                garden.UpdatedAt));
+    }
+
+    // ==================================
+    // Phase 03.3.2 - Accessible Gardens
+    // ==================================
+
+    public async Task<List<GardenListItemResponse>?> GetAccessibleGardensAsync(
+        Guid currentUserId,
+        CancellationToken cancellationToken)
+    {
+        if (currentUserId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var isSystemAdmin =
+            await _gardenRepository.GetSystemAdminStatusAsync(
+                currentUserId,
+                cancellationToken);
+
+        // Tài khoản không tồn tại hoặc đã bị vô hiệu hóa.
+        if (isSystemAdmin is null)
+        {
+            return null;
+        }
+
+        return await _gardenRepository.GetAccessibleGardensAsync(
+            currentUserId,
+            isSystemAdmin.Value,
+            cancellationToken);
     }
 
     private static string? NormalizeOptional(string? value)
