@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using RambutanSmartGarden.Api.Features.Audit.Models;
 using RambutanSmartGarden.Api.Features.Auth.Models;
 using RambutanSmartGarden.Api.Features.Gardens.Models;
 using RambutanSmartGarden.Api.Features.Users.Models;
@@ -13,17 +14,20 @@ public sealed class AppDbContext : DbContext
         : base(options)
     {
     }
-        public DbSet<User> Users => Set<User>();
+    public DbSet<User> Users => Set<User>();
 
-        public DbSet<Garden> Gardens => Set<Garden>();
+    public DbSet<Garden> Gardens => Set<Garden>();
 
-        public DbSet<GardenMembership> GardenMemberships
-            => Set<GardenMembership>();
-         public DbSet<UserSession> UserSessions
-        => Set<UserSession>();
+    public DbSet<GardenMembership> GardenMemberships
+        => Set<GardenMembership>();
+    public DbSet<UserSession> UserSessions
+   => Set<UserSession>();
 
-        public DbSet<PasswordResetRecord> PasswordResetRecords
-            => Set<PasswordResetRecord>();
+    public DbSet<PasswordResetRecord> PasswordResetRecords
+        => Set<PasswordResetRecord>();
+    public DbSet<AuditLog> AuditLogs
+ => Set<AuditLog>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
