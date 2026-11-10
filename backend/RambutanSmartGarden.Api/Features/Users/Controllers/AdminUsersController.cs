@@ -1,6 +1,8 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RambutanSmartGarden.Api.Features.Auth.DTOs;
+using RambutanSmartGarden.Api.Features.Auth.Services.Interfaces;
 using RambutanSmartGarden.Api.Features.Users.DTOs;
 using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
 
@@ -12,21 +14,17 @@ namespace RambutanSmartGarden.Api.Features.Users.Controllers;
 public sealed class AdminUsersController : ControllerBase
 {
     private readonly IAdminUserService _adminUserService;
+    private readonly IPasswordService _passwordService;
 
     public AdminUsersController(
-        IAdminUserService adminUserService)
+        IAdminUserService adminUserService,
+        IPasswordService passwordService)
     {
         _adminUserService = adminUserService;
+        _passwordService = passwordService;
     }
 
     [HttpPost]
-    [ProducesResponseType(
-        typeof(CreateUserResponse),
-        StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateUserResponse>> Create(
         [FromBody] CreateUserRequest request,
         CancellationToken cancellationToken)
@@ -51,7 +49,7 @@ public sealed class AdminUsersController : ControllerBase
         {
             return BadRequest(new ProblemDetails
             {
-                Status = StatusCodes.Status400BadRequest,
+                Status = 400,
                 Title = "Dữ liệu không hợp lệ",
                 Detail = exception.Message
             });
@@ -61,14 +59,68 @@ public sealed class AdminUsersController : ControllerBase
         {
             return Conflict(new ProblemDetails
             {
-                Status = StatusCodes.Status409Conflict,
+                Status = 409,
                 Title = "Không thể tạo tài khoản",
                 Detail = result.ConflictMessage
             });
         }
 
-        return StatusCode(
-            StatusCodes.Status201Created,
-            result.User);
+        return StatusCode(201, result.User);
+    }
+
+    [HttpPost("{userId:guid}/reset-password")]
+    public async Task<IActionResult> ResetPassword(
+        [FromRoute] Guid userId,
+        [FromBody] AdminResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        var subject = User.FindFirst("sub")?.Value;
+
+        if (!Guid.TryParse(subject, out var adminUserId))
+        {
+            return Unauthorized();
+        }
+
+        var result =
+            await _passwordService.AdminResetPasswordAsync(
+                adminUserId,
+                userId,
+                request,
+                cancellationToken);
+
+        return result switch
+        {
+            PasswordActionResult.Succeeded => NoContent(),
+
+            PasswordActionResult.UserNotFound =>
+                NotFound(new ProblemDetails
+                {
+                    Status = 404,
+                    Title = "Không tìm thấy thành viên phù hợp"
+                }),
+
+            PasswordActionResult.InvalidTarget =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Không thể đặt lại mật khẩu tài khoản này"
+                }),
+
+            PasswordActionResult.InvalidNewPassword =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Mật khẩu mới không hợp lệ"
+                }),
+
+            PasswordActionResult.ConcurrencyConflict =>
+                Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Dữ liệu tài khoản đã thay đổi"
+                }),
+
+            _ => BadRequest()
+        };
     }
 }

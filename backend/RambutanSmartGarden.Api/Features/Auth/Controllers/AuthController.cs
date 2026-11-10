@@ -11,21 +11,18 @@ namespace RambutanSmartGarden.Api.Features.Auth.Controllers;
 public sealed class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IPasswordService _passwordService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(
+        IAuthService authService,
+        IPasswordService passwordService)
     {
         _authService = authService;
+        _passwordService = passwordService;
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
-    [ProducesResponseType(
-        typeof(LoginResponse),
-        StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
@@ -38,7 +35,7 @@ public sealed class AuthController : ControllerBase
         {
             return Unauthorized(new ProblemDetails
             {
-                Status = StatusCodes.Status401Unauthorized,
+                Status = 401,
                 Title = "Đăng nhập thất bại",
                 Detail = "Thông tin đăng nhập không chính xác."
             });
@@ -49,13 +46,6 @@ public sealed class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("refresh")]
-    [ProducesResponseType(
-        typeof(LoginResponse),
-        StatusCodes.Status200OK)]
-    [ProducesResponseType(
-        StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(
-        StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Refresh(
         [FromBody] RefreshTokenRequest request,
         CancellationToken cancellationToken)
@@ -68,7 +58,7 @@ public sealed class AuthController : ControllerBase
         {
             return Unauthorized(new ProblemDetails
             {
-                Status = StatusCodes.Status401Unauthorized,
+                Status = 401,
                 Title = "Phiên đăng nhập không hợp lệ",
                 Detail = "Refresh Token đã hết hạn hoặc không còn hợp lệ."
             });
@@ -79,18 +69,10 @@ public sealed class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("logout")]
-    [ProducesResponseType(
-        StatusCodes.Status204NoContent)]
-    [ProducesResponseType(
-        StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout(
         CancellationToken cancellationToken)
     {
-        var subject = User.FindFirst("sub")?.Value;
-        var session = User.FindFirst("sid")?.Value;
-
-        if (!Guid.TryParse(subject, out var userId) ||
-            !Guid.TryParse(session, out var sessionId))
+        if (!TryGetCurrentUser(out var userId, out var sessionId))
         {
             return Unauthorized();
         }
@@ -102,4 +84,77 @@ public sealed class AuthController : ControllerBase
 
         return NoContent();
     }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUser(out var userId, out _))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _passwordService.ChangePasswordAsync(
+            userId,
+            request,
+            cancellationToken);
+
+        return result switch
+        {
+            PasswordActionResult.Succeeded => NoContent(),
+
+            PasswordActionResult.InvalidCurrentPassword =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Mật khẩu hiện tại không chính xác"
+                }),
+
+            PasswordActionResult.PasswordUnchanged =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Mật khẩu mới phải khác mật khẩu hiện tại"
+                }),
+
+            PasswordActionResult.InvalidNewPassword =>
+                BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Mật khẩu mới không hợp lệ"
+                }),
+
+            PasswordActionResult.ConcurrencyConflict =>
+                Conflict(new ProblemDetails
+                {
+                    Status = 409,
+                    Title = "Tài khoản đã thay đổi",
+                    Detail = "Vui lòng đăng nhập lại và thử lại."
+                }),
+
+            _ => Unauthorized()
+        };
+    }
+
+
+    private bool TryGetCurrentUser(
+        out Guid userId,
+        out Guid sessionId)
+    {
+        var subject = User.FindFirst("sub")?.Value;
+        var session = User.FindFirst("sid")?.Value;
+
+        var isUserIdValid = Guid.TryParse(
+            subject,
+            out userId);
+
+        var isSessionIdValid = Guid.TryParse(
+            session,
+            out sessionId);
+
+        return isUserIdValid && isSessionIdValid;
+    }
+
 }

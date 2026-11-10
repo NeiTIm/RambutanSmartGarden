@@ -54,7 +54,9 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IAuthRepository,
     AuthRepository>();
-
+builder.Services.AddScoped<
+    IPasswordRepository,
+    PasswordRepository>();
 // Services.
 builder.Services.AddScoped<
     IAdminUserService,
@@ -64,6 +66,9 @@ builder.Services.AddScoped<
     IAuthService,
     AuthService>();
 
+builder.Services.AddScoped<
+    IPasswordService,
+    PasswordService>();
 // JWT Configuration.
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
