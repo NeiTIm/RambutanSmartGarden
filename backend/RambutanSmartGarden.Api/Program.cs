@@ -95,6 +95,13 @@ builder.Services.AddScoped<
     IGardenService,
     GardenService>();
 // JWT Configuration.
+builder.Services.AddScoped<
+    IGardenMemberManagementRepository,
+    GardenMemberManagementRepository>();
+
+builder.Services.AddScoped<
+    IGardenMemberManagementService,
+    GardenMemberManagementService>();
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()
