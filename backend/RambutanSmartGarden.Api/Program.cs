@@ -7,7 +7,11 @@ using RambutanSmartGarden.Api.Common.Exceptions;
 using RambutanSmartGarden.Api.Features.Users.Models;
 using RambutanSmartGarden.Api.Infrastructure.Authentication;
 using RambutanSmartGarden.Api.Infrastructure.Persistence;
-
+ using Microsoft.AspNetCore.Authorization;
+using RambutanSmartGarden.Api.Features.Users.Repositories;
+using RambutanSmartGarden.Api.Features.Users.Repositories.Interfaces;
+using RambutanSmartGarden.Api.Features.Users.Services;
+using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers và OpenAPI.
@@ -110,8 +114,25 @@ builder.Services
                 RoleClaimType = "role"
             };
     });
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddScoped<
+    IAdminUserService,
+    AdminUserService>();
+builder.Services.AddScoped<
+    IAuthorizationHandler,
+    SystemAdminAuthorizationHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SystemAdmin", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new SystemAdminRequirement());
+    });
+});
 
 var app = builder.Build();
 
