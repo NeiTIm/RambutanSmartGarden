@@ -7,6 +7,9 @@ using RambutanSmartGarden.Api.Features.Users.Models;
 using RambutanSmartGarden.Api.Features.Gardens.Areas.Models;
 namespace RambutanSmartGarden.Api.Infrastructure.Persistence;
 
+using RambutanSmartGarden.Api.Features.Plants.Models;
+
+
 public sealed class AppDbContext : DbContext
 {
     public AppDbContext(
@@ -28,6 +31,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs
  => Set<AuditLog>();
     public DbSet<GardenArea> GardenAreas => Set<GardenArea>();
+
+    public DbSet<PlantSpecies> PlantSpecies => Set<PlantSpecies>();
+
+    public DbSet<TreeVariety> TreeVarieties => Set<TreeVariety>();
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {

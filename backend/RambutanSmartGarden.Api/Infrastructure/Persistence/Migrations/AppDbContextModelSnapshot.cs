@@ -338,6 +338,77 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Plants.Models.PlantSpecies", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("ScientificName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PlantSpecies_Name");
+
+                    b.ToTable("PlantSpecies", (string)null);
+                });
+
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Plants.Models.TreeVariety", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("PlantSpeciesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlantSpeciesId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TreeVarieties_PlantSpeciesId_Name");
+
+                    b.ToTable("TreeVarieties", (string)null);
+                });
+
             modelBuilder.Entity("RambutanSmartGarden.Api.Features.Users.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -470,6 +541,15 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                     b.HasOne("RambutanSmartGarden.Api.Features.Users.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Plants.Models.TreeVariety", b =>
+                {
+                    b.HasOne("RambutanSmartGarden.Api.Features.Plants.Models.PlantSpecies", null)
+                        .WithMany()
+                        .HasForeignKey("PlantSpeciesId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });
