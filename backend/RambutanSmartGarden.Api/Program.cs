@@ -1,5 +1,7 @@
 
 using RambutanSmartGarden.Api.Common.Exceptions;
+using Microsoft.EntityFrameworkCore;
+using RambutanSmartGarden.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,15 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // Đăng ký ProblemDetails.
 builder.Services.AddProblemDetails();
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    var connectionString = builder.Configuration
+        .GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException(
+            "Chưa cấu hình ConnectionStrings:DefaultConnection.");
+
+    options.UseSqlServer(connectionString);
+});
 var app = builder.Build();
 
 // Middleware xử lý exception.
