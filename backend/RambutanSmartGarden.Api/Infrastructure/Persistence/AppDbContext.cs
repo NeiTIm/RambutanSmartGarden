@@ -1,5 +1,6 @@
 
 using Microsoft.EntityFrameworkCore;
+using RambutanSmartGarden.Api.Features.Auth.Models;
 using RambutanSmartGarden.Api.Features.Gardens.Models;
 using RambutanSmartGarden.Api.Features.Users.Models;
 
@@ -18,7 +19,11 @@ public sealed class AppDbContext : DbContext
 
         public DbSet<GardenMembership> GardenMemberships
             => Set<GardenMembership>();
+         public DbSet<UserSession> UserSessions
+        => Set<UserSession>();
 
+        public DbSet<PasswordResetRecord> PasswordResetRecords
+            => Set<PasswordResetRecord>();
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
