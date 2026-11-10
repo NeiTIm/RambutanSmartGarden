@@ -338,6 +338,58 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Gardens.Models.PlantingSpot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("GardenAreaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GardenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GardenAreaId");
+
+                    b.HasIndex("GardenId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PlantingSpots_GardenId_Code");
+
+                    b.ToTable("PlantingSpots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PlantingSpots_Coordinates", "(\r\n        ([Latitude] IS NULL AND [Longitude] IS NULL)\r\n        OR\r\n        (\r\n            [Latitude] IS NOT NULL\r\n            AND [Longitude] IS NOT NULL\r\n            AND [Latitude] BETWEEN -90 AND 90\r\n            AND [Longitude] BETWEEN -180 AND 180\r\n        )\r\n    )");
+                        });
+                });
+
             modelBuilder.Entity("RambutanSmartGarden.Api.Features.Plants.Models.PlantSpecies", b =>
                 {
                     b.Property<Guid>("Id")
@@ -541,6 +593,20 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                     b.HasOne("RambutanSmartGarden.Api.Features.Users.Models.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Gardens.Models.PlantingSpot", b =>
+                {
+                    b.HasOne("RambutanSmartGarden.Api.Features.Gardens.Areas.Models.GardenArea", null)
+                        .WithMany()
+                        .HasForeignKey("GardenAreaId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("RambutanSmartGarden.Api.Features.Gardens.Models.Garden", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
                 });

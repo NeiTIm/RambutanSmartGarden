@@ -125,6 +125,16 @@ PlantCatalogRepository>();
 builder.Services.AddScoped<
     IPlantCatalogService,
     PlantCatalogService>();
+
+// Phase 03.4.3 - PlantingSpots.
+builder.Services.AddScoped<
+    IPlantingSpotRepository,
+    PlantingSpotRepository>();
+
+builder.Services.AddScoped<
+    IPlantingSpotService,
+    PlantingSpotService>();
+
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()

@@ -35,6 +35,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<PlantSpecies> PlantSpecies => Set<PlantSpecies>();
 
     public DbSet<TreeVariety> TreeVarieties => Set<TreeVariety>();
+    public DbSet<PlantingSpot> PlantingSpots => Set<PlantingSpot>();
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
