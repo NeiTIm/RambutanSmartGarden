@@ -532,6 +532,73 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Trees.Models.TreeReplacement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GardenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("NewTreeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OldTreeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OldTreePreviousStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("PerformedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PlantingSpotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("ReplacedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewTreeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TreeReplacements_NewTreeId");
+
+                    b.HasIndex("OldTreeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TreeReplacements_OldTreeId");
+
+                    b.HasIndex("PerformedByUserId");
+
+                    b.HasIndex("GardenId", "NewTreeId");
+
+                    b.HasIndex("GardenId", "OldTreeId");
+
+                    b.HasIndex("GardenId", "PlantingSpotId");
+
+                    b.HasIndex("GardenId", "ReplacedAt");
+
+                    b.ToTable("TreeReplacements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TreeReplacements_DifferentTrees", "[OldTreeId] <> [NewTreeId]");
+
+                            t.HasCheckConstraint("CK_TreeReplacements_OldStatus", "[OldTreePreviousStatus] IN (N'Active', N'Dead')");
+                        });
+                });
+
             modelBuilder.Entity("RambutanSmartGarden.Api.Features.Users.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -716,6 +783,42 @@ namespace RambutanSmartGarden.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PlantSpeciesId", "TreeVarietyId")
                         .HasPrincipalKey("PlantSpeciesId", "Id")
                         .OnDelete(DeleteBehavior.NoAction);
+                });
+
+            modelBuilder.Entity("RambutanSmartGarden.Api.Features.Trees.Models.TreeReplacement", b =>
+                {
+                    b.HasOne("RambutanSmartGarden.Api.Features.Gardens.Models.Garden", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RambutanSmartGarden.Api.Features.Users.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RambutanSmartGarden.Api.Features.Trees.Models.Tree", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId", "NewTreeId")
+                        .HasPrincipalKey("GardenId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RambutanSmartGarden.Api.Features.Trees.Models.Tree", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId", "OldTreeId")
+                        .HasPrincipalKey("GardenId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RambutanSmartGarden.Api.Features.Gardens.Models.PlantingSpot", null)
+                        .WithMany()
+                        .HasForeignKey("GardenId", "PlantingSpotId")
+                        .HasPrincipalKey("GardenId", "Id")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

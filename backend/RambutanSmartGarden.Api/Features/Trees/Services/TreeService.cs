@@ -96,14 +96,15 @@ public sealed class TreeService : ITreeService
         var notes = NormalizeOptional(request.Notes);
 
         if (!IsValid(
-                code,
-                name,
-                notes,
-                request.Status,
-                request.PlantedAt,
-                request.PlantSpeciesId,
-                request.TreeVarietyId,
-                request.PlantingSpotId))
+        code,
+        name,
+        notes,
+        request.Status,
+        request.PlantedAt,
+        request.PlantSpeciesId,
+        request.TreeVarietyId,
+        request.PlantingSpotId) ||
+    request.Status == "Removed")
         {
             return new(TreeOperationStatus.InvalidRequest);
         }
@@ -239,6 +240,13 @@ public sealed class TreeService : ITreeService
         if (tree is null)
         {
             return new(TreeOperationStatus.NotFound);
+        }
+        // Không cho sửa hồ sơ cây đã bị loại bỏ.
+        // Không cho bỏ cây qua API cập nhật thông thường.
+        if (tree.Status == "Removed" ||
+            request.Status == "Removed")
+        {
+            return new(TreeOperationStatus.InvalidRequest);
         }
 
         if (!tree.RowVersion.SequenceEqual(originalVersion))

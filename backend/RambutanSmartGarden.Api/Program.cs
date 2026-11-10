@@ -149,6 +149,16 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     ITreeService,
     TreeService>();
+
+// Phase 03.4.5 - Tree replacements.
+builder.Services.AddScoped<
+    ITreeReplacementRepository,
+    TreeReplacementRepository>();
+
+builder.Services.AddScoped<
+    ITreeReplacementService,
+    TreeReplacementService>();
+
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()

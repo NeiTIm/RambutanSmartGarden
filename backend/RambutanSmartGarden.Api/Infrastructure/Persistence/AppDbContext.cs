@@ -40,7 +40,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<TreeVariety> TreeVarieties => Set<TreeVariety>();
     public DbSet<PlantingSpot> PlantingSpots => Set<PlantingSpot>();
     public DbSet<Tree> Trees => Set<Tree>();
-
+    public DbSet<TreeReplacement> TreeReplacements
+        => Set<TreeReplacement>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
