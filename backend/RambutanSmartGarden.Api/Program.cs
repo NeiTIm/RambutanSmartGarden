@@ -16,7 +16,11 @@ using RambutanSmartGarden.Api.Features.Users.Services;
 using RambutanSmartGarden.Api.Features.Users.Services.Interfaces;
 using RambutanSmartGarden.Api.Infrastructure.Authentication;
 using RambutanSmartGarden.Api.Infrastructure.Persistence;
-
+using RambutanSmartGarden.Api.Infrastructure.Authorization;
+using RambutanSmartGarden.Api.Features.Gardens.Repositories;
+using RambutanSmartGarden.Api.Features.Gardens.Repositories.Interfaces;
+using RambutanSmartGarden.Api.Features.Gardens.Services;
+using RambutanSmartGarden.Api.Features.Gardens.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers và OpenAPI.
@@ -69,6 +73,21 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IPasswordService,
     PasswordService>();
+// Phân quyền theo từng Garden.
+builder.Services.AddScoped<
+    IGardenAccessService,
+    GardenAccessService>();
+
+// Repository quản lý thành viên.
+builder.Services.AddScoped<
+    IGardenMemberRepository,
+    GardenMemberRepository>();
+
+// Service quản lý thành viên.
+builder.Services.AddScoped<
+    IGardenMemberService,
+    GardenMemberService>();
+
 // JWT Configuration.
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
